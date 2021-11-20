@@ -11,8 +11,8 @@ LiquidCrystal_I2C lcd(0x27,20,4);
 
 #define DHTPIN D4       // Digital pin connected to the DHT sensor
 #define DHTTYPE DHT22   // DHT 22  (AM2302), AM2321
-#define FAN_PIN D2      // FAN RELAY
-#define Buzz_PIN D3     // Buzz Relay
+#define FAN_PIN D3      // FAN RELAY
+#define Buzz_PIN D0     // Buzz Relay
 BlynkTimer timer;
 
 char auth[] = "WFEg_fIV42IcCDZf-xWtydsZejKRNzzQ";
@@ -109,22 +109,29 @@ void updateLCD(){   //update data from sensor and show on LCD.
   lcd.print(realH);
   lcd.setCursor(13,2);
   lcd.print("%");
-  
   if (pressAuto == 1){
     lcd.setCursor(13,0);
     lcd.print("[BREAD]");
+    lcd.setCursor(15,3);
+    lcd.print(limitHigh);
   }
   if (pressAuto == 2){
     lcd.setCursor(13,0);
     lcd.print("[NATTO]");
+    lcd.setCursor(15,3);
+    lcd.print(limitHigh);
   }
   if (pressAuto == 3){
     lcd.setCursor(12,0);
     lcd.print("[TEMPEH]");
+    lcd.setCursor(15,3);
+    lcd.print(limitHigh);
   }
   if (pressAuto == 0){
     lcd.setCursor(12,0);
     lcd.print("[MANUAL]");
+    lcd.setCursor(15,3);
+    lcd.print(Val);
   }
 }
 
@@ -229,9 +236,11 @@ void setup() {
   lcd.init();  
   lcd.backlight();
   lcd.setCursor(0,1);
-  lcd.print("Temp: ");
+  lcd.print("Temp : ");
   lcd.setCursor(0,2);
   lcd.print("Humid: ");
+  lcd.setCursor(0,3);
+  lcd.print("Starting Temp: ");
   
 //setup  pin degital output.
   pinMode(FAN_PIN, OUTPUT);
