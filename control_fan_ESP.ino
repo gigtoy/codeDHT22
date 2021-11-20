@@ -35,7 +35,7 @@ DHT dht(DHTPIN, DHTTYPE);
 
 void processSensor(){
   for (i=0; i<=19; i++){
-    delay(250);
+    delay(100);
     sumH[i] = dht.readHumidity();
     sumT[i] = dht.readTemperature();
     if (isnan(sumH[i]) || isnan(sumT[i])){
