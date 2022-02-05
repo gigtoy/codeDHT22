@@ -1,23 +1,18 @@
 #include <ESP8266WiFi.h>
 #include <BlynkSimpleEsp8266.h>
 #include "DHT.h"
-
-#include <MCP3208.h>    //Connect MCP3208
-#include <SPI.h>
-MCP3208 adc(D8);        //CS Port connect to ESP Digital Pin
-
+#include "Adafruit_MCP23017.h"
+Adafruit_MCP23017 mcp;
 #include <LiquidCrystal_I2C.h>
 LiquidCrystal_I2C lcd(0x27,20,4);
 
 #define DHTPIN D4       // Digital pin connected to the DHT sensor
 #define DHTTYPE DHT22   // DHT 22  (AM2302), AM2321
-#define FAN_PIN D3      // FAN RELAY
-#define Buzz_PIN D0     // Buzz Relay
 BlynkTimer timer;
 
 char auth[] = "WFEg_fIV42IcCDZf-xWtydsZejKRNzzQ";
-char ssid[] = "Henvisut2012";    //wifi name
-char pass[] = "line6387";       //wifi password
+char ssid[] = "Henvisut2012";    //wifi name*********************************************
+char pass[] = "line6387";       //wifi password******************************************Don't forget to change Username and password.
 
 int Val = 0;
 int i = 0;
@@ -70,30 +65,37 @@ void processSensor(){
 
 void condition(){// Compare Threshold value from Blynk and DHT Temperature value.
   if ((pressAuto == 1)||(pressAuto == 2)||(pressAuto == 3)){
-    if (realT < limitHigh)
-      {
-      digitalWrite(FAN_PIN, HIGH); //turn off
-      digitalWrite(Buzz_PIN, HIGH);
+    if (realT < limitHigh){ //Cold
+      mcp.digitalWrite(8,  HIGH);
+      mcp.digitalWrite(9,  LOW);
+      mcp.digitalWrite(10, HIGH);
+      mcp.digitalWrite(11, HIGH);
       Serial.print(F("auto1"));
       Serial.println();
       }
     else{
-      digitalWrite(FAN_PIN, LOW);
-      digitalWrite(Buzz_PIN, HIGH);//turn on
+      mcp.digitalWrite(8,  LOW);
+      mcp.digitalWrite(9,  HIGH);
+      mcp.digitalWrite(10, HIGH);
+      mcp.digitalWrite(11, LOW);
       Serial.print(F("auto2"));
       Serial.println();
       }
   }
   if (pressAuto == 0){
-    if (realT > Val){
-      digitalWrite(FAN_PIN, HIGH); //turn off
-      digitalWrite(Buzz_PIN, HIGH);
+    if (realT > Val){  //Hot
+      mcp.digitalWrite(8,  LOW);
+      mcp.digitalWrite(9,  HIGH);
+      mcp.digitalWrite(10, HIGH);
+      mcp.digitalWrite(11, LOW);
       Serial.print(F("m1"));
       Serial.println();
      }
     else{
-      digitalWrite(FAN_PIN, LOW);
-      digitalWrite(Buzz_PIN, HIGH);//turn on
+      mcp.digitalWrite(8,  HIGH);
+      mcp.digitalWrite(9,  LOW);
+      mcp.digitalWrite(10, HIGH);
+      mcp.digitalWrite(11, HIGH);
       Serial.print(F("m2"));
       Serial.println();
       } 
@@ -137,15 +139,15 @@ void updateLCD(){   //update data from sensor and show on LCD.
 
 void ChangeTemp(){
   delay(170);
-  if(adc.analogRead(0)>=2000){
+  if(mcp.digitalRead(4)== 1){
     Val = Val+1;
-    Serial.print(F("Theshold Temp: "));
+    Serial.print(F("Threshold Temp: "));
     Serial.print(Val);
     Serial.println();
   }
-  if(adc.analogRead(1)>=2000){
+  if(mcp.digitalRead(5)==1){
     Val = Val-1;
-    Serial.print(F("Theshold Temp: "));
+    Serial.print(F("Threshold Temp: "));
     Serial.print(Val);
     Serial.println();
   }
@@ -153,25 +155,25 @@ void ChangeTemp(){
 
 void KeyBotton(){ //Key Botton 4 PIN Select mode
   delay(170);
-  if(adc.analogRead(2) < 300){
+  if(mcp.digitalRead(0) == 0){
     pressAuto = 1;
-    limitHigh = 30;
+    limitHigh = 28;
     Serial.print(F("Bread Botton"));
     Serial.println();
   }
-  else if(adc.analogRead(3) < 300){
+  else if(mcp.digitalRead(1) == 0){
     pressAuto = 3;
-    limitHigh = 30;
+    limitHigh = 37;
     Serial.print(F("Tempeh Botton"));
     Serial.println();
   }
-  else if(adc.analogRead(4) < 300){
+  else if(mcp.digitalRead(2) == 0){
     pressAuto = 2;
-    limitHigh = 30; 
+    limitHigh = 37; 
     Serial.print(F("Natto Botton"));
     Serial.println();
   }
-  else if(adc.analogRead(5) < 300){
+  else if(mcp.digitalRead(3) == 0){
     pressAuto = 0;
     Serial.print(F("Manual Botton"));
     Serial.println();
@@ -183,7 +185,7 @@ BLYNK_WRITE(V0) { //Segment switch choose what to do
   {
     case 1: { //Bread
         pressAuto = 1;
-        limitHigh = 30; 
+        limitHigh = 28; 
         Serial.print(F("Blynk High is:  "));
         Serial.print(limitHigh);
         Serial.println();
@@ -191,7 +193,7 @@ BLYNK_WRITE(V0) { //Segment switch choose what to do
       }
     case 2: { //Natto
         pressAuto = 2;
-        limitHigh = 30; 
+        limitHigh = 37; 
         Serial.print(F("Blynk High is:  "));
         Serial.print(limitHigh);
         Serial.println();
@@ -199,7 +201,7 @@ BLYNK_WRITE(V0) { //Segment switch choose what to do
       }
     case 3: { //Tempeh
         pressAuto = 3;
-        limitHigh = 30; 
+        limitHigh = 37; 
         Serial.print(F("Blynk High is:  "));
         Serial.print(limitHigh);
         Serial.println();
@@ -228,8 +230,23 @@ BLYNK_CONNECTED(){
 
 void setup() {
   Serial.begin(115200);
-//setup mcp3208
-  adc.begin();
+//setup mcp23017
+  mcp.begin();
+  mcp.pinMode(0, INPUT); //key1
+  mcp.pinMode(1, INPUT); //key2
+  mcp.pinMode(2, INPUT); //key3
+  mcp.pinMode(3, INPUT); //key4
+  mcp.pinMode(4, INPUT); //Plus  key
+  mcp.pinMode(5, INPUT); //Minus key
+  
+  mcp.pinMode(8, OUTPUT);
+  mcp.pinMode(9, OUTPUT);
+  mcp.pinMode(10,OUTPUT);//relay
+  mcp.pinMode(11,OUTPUT);
+  mcp.digitalWrite(8,  HIGH); //fan
+  mcp.digitalWrite(9,  HIGH); //light
+  mcp.digitalWrite(10, HIGH); //buzzer
+  mcp.digitalWrite(11, HIGH); //steam
   
 //setup lcd(Debug console)
   dht.begin();
@@ -243,15 +260,11 @@ void setup() {
   lcd.print("Starting Temp: ");
   
 //setup  pin degital output.
-  pinMode(FAN_PIN, OUTPUT);
-  pinMode(Buzz_PIN, OUTPUT);
-  digitalWrite(FAN_PIN, LOW);
-  digitalWrite(Buzz_PIN, LOW);
-  Blynk.begin( auth, ssid , pass );
-  timer.setInterval(10L, KeyBotton);
-  timer.setInterval(10L, ChangeTemp);
-  timer.setInterval(1000L, updateLCD);
-  timer.setInterval(1000L, condition);
+  Blynk.begin( auth, ssid , pass);
+  timer.setInterval(10L,    KeyBotton);
+  timer.setInterval(10L,    ChangeTemp);
+  timer.setInterval(1000L,  updateLCD);
+  timer.setInterval(1000L,  condition);
   timer.setInterval(10000L, processSensor);
 }
 
