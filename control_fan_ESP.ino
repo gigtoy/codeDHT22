@@ -64,6 +64,12 @@ void processSensor(){
 }
 
 void condition(){// Compare Threshold value from Blynk and DHT Temperature value.
+  if (realT > 50){
+    mcp.digitalWrite(8,  HIGH);
+    mcp.digitalWrite(9,  HIGH);
+    mcp.digitalWrite(10, LOW);
+    mcp.digitalWrite(11, HIGH);
+  }
   if ((pressAuto == 1)||(pressAuto == 2)||(pressAuto == 3)){
     if (realT < limitHigh){ //Cold
       mcp.digitalWrite(8,  HIGH);
