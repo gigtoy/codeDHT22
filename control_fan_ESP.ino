@@ -1,18 +1,20 @@
 #include <ESP8266WiFi.h>
 #include <BlynkSimpleEsp8266.h>
 #include "DHT.h"
+#include <SimpleTimer.h>
 #include "Adafruit_MCP23017.h"
-Adafruit_MCP23017 mcp;
 #include <LiquidCrystal_I2C.h>
-LiquidCrystal_I2C lcd(0x27,20,4);
 
 #define DHTPIN D4       // Digital pin connected to the DHT sensor
 #define DHTTYPE DHT22   // DHT 22  (AM2302), AM2321
-BlynkTimer timer;
+
+SimpleTimer timer;
+Adafruit_MCP23017 mcp;
+LiquidCrystal_I2C lcd(0x27,20,4);
 
 char auth[] = "WFEg_fIV42IcCDZf-xWtydsZejKRNzzQ";
-char ssid[] = "Henvisut2012";    //wifi name*********************************************
-char pass[] = "line6387";       //wifi password******************************************Don't forget to change Username and password.
+char ssid[] = "Gigtoy1";           //wifi name*********************************************
+char pass[] = "kenpeepo12";        //wifi password******************************************Don't forget to change Username and password.
 
 int Val = 0;
 int i = 0;
@@ -70,7 +72,7 @@ void condition(){// Compare Threshold value from Blynk and DHT Temperature value
     mcp.digitalWrite(10, LOW);
     mcp.digitalWrite(11, HIGH);
   }
-  if ((pressAuto == 1)||(pressAuto == 2)||(pressAuto == 3)){
+  if ((pressAuto == 1)||(pressAuto == 2)){
     if (realT < limitHigh){ //Cold
       mcp.digitalWrite(8,  HIGH);
       mcp.digitalWrite(9,  LOW);
@@ -125,12 +127,6 @@ void updateLCD(){   //update data from sensor and show on LCD.
   }
   if (pressAuto == 2){
     lcd.setCursor(13,0);
-    lcd.print("[NATTO]");
-    lcd.setCursor(15,3);
-    lcd.print(limitHigh);
-  }
-  if (pressAuto == 3){
-    lcd.setCursor(12,0);
     lcd.print("[TEMPEH]");
     lcd.setCursor(15,3);
     lcd.print(limitHigh);
@@ -144,7 +140,7 @@ void updateLCD(){   //update data from sensor and show on LCD.
 }
 
 void ChangeTemp(){
-  delay(170);
+  delay(150);
   if(mcp.digitalRead(4)== 1){
     Val = Val+1;
     Serial.print(F("Threshold Temp: "));
@@ -160,23 +156,22 @@ void ChangeTemp(){
 }
 
 void KeyBotton(){ //Key Botton 4 PIN Select mode
-  delay(170);
+  delay(150);
   if(mcp.digitalRead(0) == 0){
+    Blynk.begin(auth, ssid , pass);
+    Serial.print(F("Blynk connected"));
+    Serial.println();
+  }
+  else if(mcp.digitalRead(1) == 0){
     pressAuto = 1;
     limitHigh = 28;
     Serial.print(F("Bread Botton"));
     Serial.println();
   }
-  else if(mcp.digitalRead(1) == 0){
-    pressAuto = 3;
-    limitHigh = 37;
-    Serial.print(F("Tempeh Botton"));
-    Serial.println();
-  }
   else if(mcp.digitalRead(2) == 0){
     pressAuto = 2;
     limitHigh = 37; 
-    Serial.print(F("Natto Botton"));
+    Serial.print(F("Tempeh Botton"));
     Serial.println();
   }
   else if(mcp.digitalRead(3) == 0){
@@ -191,31 +186,23 @@ BLYNK_WRITE(V0) { //Segment switch choose what to do
   {
     case 1: { //Bread
         pressAuto = 1;
-        limitHigh = 28; 
-        Serial.print(F("Blynk High is:  "));
+        limitHigh = 28;
+        Serial.print(F("Blynk Bread"));
         Serial.print(limitHigh);
         Serial.println();
         break;
       }
-    case 2: { //Natto
+    case 2: { //Tempeh
         pressAuto = 2;
         limitHigh = 37; 
-        Serial.print(F("Blynk High is:  "));
+        Serial.print(F("Blynk Tempeh"));
         Serial.print(limitHigh);
         Serial.println();
         break;
       }
-    case 3: { //Tempeh
-        pressAuto = 3;
-        limitHigh = 37; 
-        Serial.print(F("Blynk High is:  "));
-        Serial.print(limitHigh);
-        Serial.println();
-        break;
-      }
-    case 4: { //Manual
+    case 3: { //Manual
         pressAuto = 0;
-        Serial.print(F("Blynk Manual: "));
+        Serial.print(F("Blynk Manual"));
         Serial.print(pressAuto);
         Serial.println();
         break;
@@ -264,14 +251,13 @@ void setup() {
   lcd.print("Humid: ");
   lcd.setCursor(0,3);
   lcd.print("Starting Temp: ");
-  
+ 
 //setup  pin degital output.
-  Blynk.begin( auth, ssid , pass);
-  timer.setInterval(10L,    KeyBotton);
-  timer.setInterval(10L,    ChangeTemp);
-  timer.setInterval(1000L,  updateLCD);
-  timer.setInterval(1000L,  condition);
-  timer.setInterval(10000L, processSensor);
+  timer.setInterval(10,    KeyBotton);
+  timer.setInterval(10,    ChangeTemp);
+  timer.setInterval(1000,  updateLCD);
+  timer.setInterval(1000,  condition);
+  timer.setInterval(10000, processSensor);
 }
 
 void loop() {
