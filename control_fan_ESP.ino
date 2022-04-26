@@ -1,3 +1,9 @@
+#define BLYNK_TEMPLATE_ID "TMPLTyQ7jLQK"
+#define BLYNK_DEVICE_NAME "New start Device"
+#define BLYNK_AUTH_TOKEN "JY5R2RySLLo8xPXv6aaNbpe5WM4tJrGm"
+
+#define BLYNK_PRINT Serial
+
 #include <ESP8266WiFi.h>
 #include <BlynkSimpleEsp8266.h>
 #include "DHT.h"
@@ -8,13 +14,14 @@
 #define DHTPIN D4       // Digital pin connected to the DHT sensor
 #define DHTTYPE DHT22   // DHT 22  (AM2302), AM2321
 
+char auth[] = BLYNK_AUTH_TOKEN;
+char ssid[] = "Gigtoy1";
+char pass[] = "kenpeepo12";
+
 SimpleTimer timer;
 Adafruit_MCP23017 mcp;
 LiquidCrystal_I2C lcd(0x27,20,4);
-
-char auth[] = "WFEg_fIV42IcCDZf-xWtydsZejKRNzzQ";
-char ssid[] = "Gigtoy1";           //wifi name*********************************************
-char pass[] = "kenpeepo12";        //wifi password******************************************Don't forget to change Username and password.
+DHT dht(DHTPIN, DHTTYPE);
 
 int Val = 0;
 int i = 0;
@@ -23,12 +30,9 @@ float avtemp = 0;
 float avhumi = 0;
 float sumH[20];
 float sumT[20];
-float limitHigh;
 float realT;
-float realH;
-
-// Initialize DHT sensor.
-DHT dht(DHTPIN, DHTTYPE);
+float limitHigh;
+float realH,HumiHigh;
 
 void processSensor(){
   for (i=0; i<=19; i++){
@@ -57,8 +61,8 @@ void processSensor(){
   Serial.println();
   
 //show Temp&HUmidity in Blynk app
-  Blynk.virtualWrite(V6, realT);
-  Blynk.virtualWrite(V5, realH);
+  Blynk.virtualWrite(V2, realT);
+  Blynk.virtualWrite(V3, realH);
   
 //set average temp&humidity to zero
   avtemp = 0;
@@ -66,47 +70,65 @@ void processSensor(){
 }
 
 void condition(){// Compare Threshold value from Blynk and DHT Temperature value.
-  if (realT > 50){
-    mcp.digitalWrite(8,  HIGH);
-    mcp.digitalWrite(9,  HIGH);
-    mcp.digitalWrite(10, LOW);
-    mcp.digitalWrite(11, HIGH);
-  }
   if ((pressAuto == 1)||(pressAuto == 2)){
-    if (realT < limitHigh){ //Cold
-      mcp.digitalWrite(8,  HIGH);
-      mcp.digitalWrite(9,  LOW);
-      mcp.digitalWrite(10, HIGH);
-      mcp.digitalWrite(11, HIGH);
-      Serial.print(F("auto1"));
-      Serial.println();
+    if (realT < limitHigh && realH < HumiHigh){ //Temperature
+      mcp.digitalWrite(6, HIGH);
+      mcp.digitalWrite(7, LOW);
+      mcp.digitalWrite(8, HIGH);
+      mcp.digitalWrite(9, LOW);
+      Serial.println(F("LowTemp & LowHumidity"));
       }
-    else{
-      mcp.digitalWrite(8,  LOW);
-      mcp.digitalWrite(9,  HIGH);
-      mcp.digitalWrite(10, HIGH);
-      mcp.digitalWrite(11, LOW);
-      Serial.print(F("auto2"));
-      Serial.println();
+    else if (realT < limitHigh && realH > HumiHigh+5){
+      mcp.digitalWrite(6, LOW);
+      mcp.digitalWrite(7, LOW);
+      mcp.digitalWrite(8, HIGH);
+      mcp.digitalWrite(9, HIGH);
+      Serial.println(F("LowTemp & HighHumidity"));
       }
+    if (realT > limitHigh+0.5 && realH < HumiHigh){ //Humidity
+      mcp.digitalWrite(6, LOW);
+      mcp.digitalWrite(7, HIGH);
+      mcp.digitalWrite(8, LOW);
+      mcp.digitalWrite(9, LOW);
+      Serial.println(F("HighTemp & LowHumidity"));
+    }
+    else if (realT > limitHigh+0.5 && realH > HumiHigh+5){
+      mcp.digitalWrite(6, LOW);
+      mcp.digitalWrite(7, HIGH);
+      mcp.digitalWrite(8, HIGH);
+      mcp.digitalWrite(9, HIGH);
+      Serial.println(F("HighTemp & HighHumidity"));
+    }
   }
   if (pressAuto == 0){
-    if (realT > Val){  //Hot
-      mcp.digitalWrite(8,  LOW);
-      mcp.digitalWrite(9,  HIGH);
-      mcp.digitalWrite(10, HIGH);
-      mcp.digitalWrite(11, LOW);
-      Serial.print(F("m1"));
-      Serial.println();
-     }
-    else{
-      mcp.digitalWrite(8,  HIGH);
-      mcp.digitalWrite(9,  LOW);
-      mcp.digitalWrite(10, HIGH);
-      mcp.digitalWrite(11, HIGH);
-      Serial.print(F("m2"));
-      Serial.println();
-      } 
+    if (realT < Val && realH < HumiHigh){ //Temperature
+      mcp.digitalWrite(6, HIGH);
+      mcp.digitalWrite(7, LOW);
+      mcp.digitalWrite(8, HIGH);
+      mcp.digitalWrite(9, LOW);
+      Serial.println(F("LowTemp & LowHumidity"));
+      }
+    else if (realT < Val && realH > HumiHigh+5){
+      mcp.digitalWrite(6, LOW);
+      mcp.digitalWrite(7, LOW);
+      mcp.digitalWrite(8, HIGH);
+      mcp.digitalWrite(9, HIGH);
+      Serial.println(F("LowTemp & HighHumidity"));
+      }
+    if (realT > Val+0.5 && realH < HumiHigh){ //Humidity
+      mcp.digitalWrite(6, LOW);
+      mcp.digitalWrite(7, HIGH);
+      mcp.digitalWrite(8, LOW);
+      mcp.digitalWrite(9, LOW);
+      Serial.println(F("HighTemp & LowHumidity"));
+    }
+    else if (realT > Val+0.5 && realH > HumiHigh+5){
+      mcp.digitalWrite(6, LOW);
+      mcp.digitalWrite(7, HIGH);
+      mcp.digitalWrite(8, HIGH);
+      mcp.digitalWrite(9, HIGH);
+      Serial.println(F("HighTemp & HighHumidity"));
+    }
   }
 }
 
@@ -126,7 +148,7 @@ void updateLCD(){   //update data from sensor and show on LCD.
     lcd.print(limitHigh);
   }
   if (pressAuto == 2){
-    lcd.setCursor(13,0);
+    lcd.setCursor(12,0);
     lcd.print("[TEMPEH]");
     lcd.setCursor(15,3);
     lcd.print(limitHigh);
@@ -140,7 +162,7 @@ void updateLCD(){   //update data from sensor and show on LCD.
 }
 
 void ChangeTemp(){
-  delay(150);
+  delay(140);
   if(mcp.digitalRead(4)== 1){
     Val = Val+1;
     Serial.print(F("Threshold Temp: "));
@@ -156,69 +178,67 @@ void ChangeTemp(){
 }
 
 void KeyBotton(){ //Key Botton 4 PIN Select mode
-  delay(150);
+  delay(140);
   if(mcp.digitalRead(0) == 0){
-    Blynk.begin(auth, ssid , pass);
+    Blynk.begin(auth, ssid, pass);
     Serial.print(F("Blynk connected"));
     Serial.println();
   }
   else if(mcp.digitalRead(1) == 0){
     pressAuto = 1;
     limitHigh = 28;
+    HumiHigh  = 50;
     Serial.print(F("Bread Botton"));
     Serial.println();
   }
   else if(mcp.digitalRead(2) == 0){
     pressAuto = 2;
-    limitHigh = 37; 
+    limitHigh = 32;
+    HumiHigh  = 50;
     Serial.print(F("Tempeh Botton"));
     Serial.println();
   }
   else if(mcp.digitalRead(3) == 0){
     pressAuto = 0;
+    HumiHigh  = 50;
     Serial.print(F("Manual Botton"));
     Serial.println();
   }
 }
 
-BLYNK_WRITE(V0) { //Segment switch choose what to do
-  switch (param.asInt())
-  {
-    case 1: { //Bread
-        pressAuto = 1;
-        limitHigh = 28;
-        Serial.print(F("Blynk Bread"));
-        Serial.print(limitHigh);
-        Serial.println();
-        break;
-      }
-    case 2: { //Tempeh
-        pressAuto = 2;
-        limitHigh = 37; 
-        Serial.print(F("Blynk Tempeh"));
-        Serial.print(limitHigh);
-        Serial.println();
-        break;
-      }
-    case 3: { //Manual
-        pressAuto = 0;
-        Serial.print(F("Blynk Manual"));
-        Serial.print(pressAuto);
-        Serial.println();
-        break;
-      }
-    }
-}
-
-BLYNK_WRITE(V3){
-    Val = param.asInt(); // assigning incoming value from pin V3 to a variable
-    Serial.print(" The Threshhold value is: ");
-    Serial.println(Val);
+BLYNK_WRITE(V0) { 
+  int control = param.asInt();
+  if(control == 1){
+    pressAuto = 1;
+    limitHigh = 28;
+    HumiHigh  = 50;
+    Serial.print(F("Bread Botton"));
     Serial.println();
+  }
 }
 
-BLYNK_CONNECTED(){
-  Blynk.syncAll();
+BLYNK_WRITE(V1) { 
+  int value = param.asInt();
+  if(value == 1){
+    pressAuto = 2;
+    HumiHigh  = 50;
+    Serial.print(F("Tempeh Botton"));
+    Serial.println();
+  }
+}
+
+BLYNK_WRITE(V4) { 
+  int manual = param.asInt();
+  if(manual == 1){
+    pressAuto = 0;
+    HumiHigh  = 50; 
+    Serial.print(F("Manual Botton"));
+    Serial.println();
+  }
+}
+
+BLYNK_CONNECTED() {
+    Blynk.syncAll();
 }
 
 void setup() {
@@ -232,14 +252,14 @@ void setup() {
   mcp.pinMode(4, INPUT); //Plus  key
   mcp.pinMode(5, INPUT); //Minus key
   
-  mcp.pinMode(8, OUTPUT);
-  mcp.pinMode(9, OUTPUT);
-  mcp.pinMode(10,OUTPUT);//relay
-  mcp.pinMode(11,OUTPUT);
-  mcp.digitalWrite(8,  HIGH); //fan
-  mcp.digitalWrite(9,  HIGH); //light
-  mcp.digitalWrite(10, HIGH); //buzzer
-  mcp.digitalWrite(11, HIGH); //steam
+  mcp.pinMode(6, OUTPUT);
+  mcp.pinMode(7, OUTPUT);
+  mcp.pinMode(8,OUTPUT);//relay
+  mcp.pinMode(9,OUTPUT);
+  mcp.digitalWrite(6, HIGH); //fan1
+  mcp.digitalWrite(7, HIGH); //light
+  mcp.digitalWrite(8, HIGH); //fan2
+  mcp.digitalWrite(9, HIGH); //steam
   
 //setup lcd(Debug console)
   dht.begin();
@@ -250,7 +270,7 @@ void setup() {
   lcd.setCursor(0,2);
   lcd.print("Humid: ");
   lcd.setCursor(0,3);
-  lcd.print("Starting Temp: ");
+  lcd.print("Setting Temp: ");
  
 //setup  pin degital output.
   timer.setInterval(10,    KeyBotton);
