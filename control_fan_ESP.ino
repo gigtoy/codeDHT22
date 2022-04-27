@@ -78,21 +78,21 @@ void condition(){// Compare Threshold value from Blynk and DHT Temperature value
       mcp.digitalWrite(9, LOW);
       Serial.println(F("LowTemp & LowHumidity"));
       }
-    else if (realT < limitHigh && realH > HumiHigh+5){
+    else if (realT < limitHigh && realH > HumiHigh){
       mcp.digitalWrite(6, LOW);
       mcp.digitalWrite(7, LOW);
       mcp.digitalWrite(8, HIGH);
       mcp.digitalWrite(9, HIGH);
       Serial.println(F("LowTemp & HighHumidity"));
       }
-    if (realT > limitHigh+0.5 && realH < HumiHigh){ //Humidity
+    else if (realT > limitHigh && realH < HumiHigh){ //Humidity
       mcp.digitalWrite(6, LOW);
       mcp.digitalWrite(7, HIGH);
       mcp.digitalWrite(8, LOW);
       mcp.digitalWrite(9, LOW);
       Serial.println(F("HighTemp & LowHumidity"));
     }
-    else if (realT > limitHigh+0.5 && realH > HumiHigh+5){
+    else if (realT > limitHigh && realH > HumiHigh){
       mcp.digitalWrite(6, LOW);
       mcp.digitalWrite(7, HIGH);
       mcp.digitalWrite(8, HIGH);
@@ -108,21 +108,21 @@ void condition(){// Compare Threshold value from Blynk and DHT Temperature value
       mcp.digitalWrite(9, LOW);
       Serial.println(F("LowTemp & LowHumidity"));
       }
-    else if (realT < Val && realH > HumiHigh+5){
+    else if (realT < Val && realH > HumiHigh){
       mcp.digitalWrite(6, LOW);
       mcp.digitalWrite(7, LOW);
       mcp.digitalWrite(8, HIGH);
       mcp.digitalWrite(9, HIGH);
       Serial.println(F("LowTemp & HighHumidity"));
       }
-    if (realT > Val+0.5 && realH < HumiHigh){ //Humidity
+    else if (realT > Val && realH < HumiHigh){ //Humidity
       mcp.digitalWrite(6, LOW);
       mcp.digitalWrite(7, HIGH);
       mcp.digitalWrite(8, LOW);
       mcp.digitalWrite(9, LOW);
       Serial.println(F("HighTemp & LowHumidity"));
     }
-    else if (realT > Val+0.5 && realH > HumiHigh+5){
+    else if (realT > Val && realH > HumiHigh){
       mcp.digitalWrite(6, LOW);
       mcp.digitalWrite(7, HIGH);
       mcp.digitalWrite(8, HIGH);
@@ -162,7 +162,7 @@ void updateLCD(){   //update data from sensor and show on LCD.
 }
 
 void ChangeTemp(){
-  delay(140);
+  delay(150);
   if(mcp.digitalRead(4)== 1){
     Val = Val+1;
     Serial.print(F("Threshold Temp: "));
@@ -178,7 +178,7 @@ void ChangeTemp(){
 }
 
 void KeyBotton(){ //Key Botton 4 PIN Select mode
-  delay(140);
+  delay(150);
   if(mcp.digitalRead(0) == 0){
     Blynk.begin(auth, ssid, pass);
     Serial.print(F("Blynk connected"));
@@ -187,20 +187,20 @@ void KeyBotton(){ //Key Botton 4 PIN Select mode
   else if(mcp.digitalRead(1) == 0){
     pressAuto = 1;
     limitHigh = 28;
-    HumiHigh  = 50;
+    HumiHigh  = 70.5;
     Serial.print(F("Bread Botton"));
     Serial.println();
   }
   else if(mcp.digitalRead(2) == 0){
     pressAuto = 2;
-    limitHigh = 32;
-    HumiHigh  = 50;
+    limitHigh = 34;
+    HumiHigh  = 50.5;
     Serial.print(F("Tempeh Botton"));
     Serial.println();
   }
   else if(mcp.digitalRead(3) == 0){
     pressAuto = 0;
-    HumiHigh  = 50;
+    HumiHigh  = 50.5;
     Serial.print(F("Manual Botton"));
     Serial.println();
   }
@@ -211,7 +211,7 @@ BLYNK_WRITE(V0) {
   if(control == 1){
     pressAuto = 1;
     limitHigh = 28;
-    HumiHigh  = 50;
+    HumiHigh  = 70.5;
     Serial.print(F("Bread Botton"));
     Serial.println();
   }
@@ -221,7 +221,8 @@ BLYNK_WRITE(V1) {
   int value = param.asInt();
   if(value == 1){
     pressAuto = 2;
-    HumiHigh  = 50;
+    limitHigh = 34;
+    HumiHigh  = 50.5;
     Serial.print(F("Tempeh Botton"));
     Serial.println();
   }
@@ -231,7 +232,7 @@ BLYNK_WRITE(V4) {
   int manual = param.asInt();
   if(manual == 1){
     pressAuto = 0;
-    HumiHigh  = 50; 
+    HumiHigh  = 50.5; 
     Serial.print(F("Manual Botton"));
     Serial.println();
   }
